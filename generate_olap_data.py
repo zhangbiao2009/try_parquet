@@ -139,57 +139,72 @@ def generate_customer_dimension():
     return pd.DataFrame(customer_data)
 
 def generate_sales_fact(time_dim, geo_dim, product_dim, customer_dim, num_records=50000):
-    """Generate sales fact table with realistic patterns."""
-    fact_data = []
+    """Generate sales fact table with realistic patterns using vectorized operations."""
+    print(f"Generating {num_records} sales records using vectorized approach...")
     
-    print(f"Generating {num_records} sales records...")
+    # Generate all random selections at once (much faster)
+    np.random.seed(42)  # Ensure reproducibility
+    date_keys = np.random.choice(time_dim['date_key'].values, num_records)
+    geo_keys = np.random.choice(geo_dim['geography_key'].values, num_records)
+    product_keys = np.random.choice(product_dim['product_key'].values, num_records)
+    customer_keys = np.random.choice(customer_dim['customer_key'].values, num_records)
     
-    for i in range(num_records):
-        if i % 10000 == 0:
-            print(f"Generated {i} records...")
-        
-        # Select random dimensions
-        date_key = random.choice(time_dim['date_key'].values)
-        geo_key = random.choice(geo_dim['geography_key'].values)
-        product_key = random.choice(product_dim['product_key'].values)
-        customer_key = random.choice(customer_dim['customer_key'].values)
-        
-        # Get product info for pricing
-        product_info = product_dim[product_dim['product_key'] == product_key].iloc[0]
-        date_info = time_dim[time_dim['date_key'] == date_key].iloc[0]
-        
-        # Generate realistic quantities (higher on weekends and holidays)
-        base_quantity = random.randint(1, 10)
-        if date_info['is_weekend']:
-            base_quantity *= random.uniform(1.2, 1.8)
-        
-        quantity = max(1, int(base_quantity))
-        unit_price = product_info['unit_price']
-        unit_cost = product_info['unit_cost']
-        
-        # Add some price variation (discounts, promotions)
-        price_modifier = random.uniform(0.8, 1.1)
-        actual_unit_price = round(unit_price * price_modifier, 2)
-        
-        gross_sales = round(quantity * actual_unit_price, 2)
-        total_cost = round(quantity * unit_cost, 2)
-        profit = round(gross_sales - total_cost, 2)
-        
-        fact_data.append({
-            'sales_key': i + 1,
-            'date_key': date_key,
-            'geography_key': geo_key,
-            'product_key': product_key,
-            'customer_key': customer_key,
-            'quantity': quantity,
-            'unit_price': actual_unit_price,
-            'unit_cost': unit_cost,
-            'gross_sales': gross_sales,
-            'total_cost': total_cost,
-            'profit': profit
-        })
+    # Generate base quantities
+    base_quantities = np.random.randint(1, 11, num_records)
     
-    return pd.DataFrame(fact_data)
+    # Create base DataFrame
+    sales_fact = pd.DataFrame({
+        'sales_key': range(1, num_records + 1),
+        'date_key': date_keys,
+        'geography_key': geo_keys,
+        'product_key': product_keys,
+        'customer_key': customer_keys,
+        'base_quantity': base_quantities
+    })
+    
+    print("Joining with dimension tables...")
+    
+    # Join with product dimension to get pricing (much faster than loops)
+    sales_fact = sales_fact.merge(
+        product_dim[['product_key', 'unit_price', 'unit_cost']], 
+        on='product_key'
+    )
+    
+    # Join with time dimension to get weekend info
+    sales_fact = sales_fact.merge(
+        time_dim[['date_key', 'is_weekend']], 
+        on='date_key'
+    )
+    
+    print("Calculating derived fields...")
+    
+    # Apply weekend boost to quantities (vectorized)
+    weekend_multiplier = np.where(
+        sales_fact['is_weekend'] == 1,
+        np.random.uniform(1.2, 1.8, num_records),
+        1.0
+    )
+    sales_fact['quantity'] = np.maximum(1, (sales_fact['base_quantity'] * weekend_multiplier).astype(int))
+    
+    # Generate price variations (discounts, promotions)
+    price_modifiers = np.random.uniform(0.8, 1.1, num_records)
+    sales_fact['unit_price'] = np.round(sales_fact['unit_price'] * price_modifiers, 2)
+    
+    # Calculate financial metrics (vectorized)
+    sales_fact['gross_sales'] = np.round(sales_fact['quantity'] * sales_fact['unit_price'], 2)
+    sales_fact['total_cost'] = np.round(sales_fact['quantity'] * sales_fact['unit_cost'], 2)
+    sales_fact['profit'] = np.round(sales_fact['gross_sales'] - sales_fact['total_cost'], 2)
+    
+    # Clean up temporary columns
+    sales_fact = sales_fact.drop(['base_quantity', 'is_weekend'], axis=1)
+    
+    # Reorder columns to match original format
+    sales_fact = sales_fact[['sales_key', 'date_key', 'geography_key', 'product_key', 
+                           'customer_key', 'quantity', 'unit_price', 'unit_cost', 
+                           'gross_sales', 'total_cost', 'profit']]
+    
+    print(f"Generated {len(sales_fact):,} sales records successfully!")
+    return sales_fact
 
 def main():
     """Generate all dimensions and fact table, then save to both Parquet and CSV files."""
@@ -216,7 +231,7 @@ def main():
     
     # Generate fact table
     print("Generating sales fact table...")
-    sales_fact = generate_sales_fact(time_dim, geo_dim, product_dim, customer_dim, 300000)
+    sales_fact = generate_sales_fact(time_dim, geo_dim, product_dim, customer_dim, 1000000)
     
     # Save to Parquet files
     print("Saving to Parquet files...")
