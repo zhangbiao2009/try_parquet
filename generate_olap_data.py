@@ -216,7 +216,7 @@ def main():
     
     # Generate fact table
     print("Generating sales fact table...")
-    sales_fact = generate_sales_fact(time_dim, geo_dim, product_dim, customer_dim)
+    sales_fact = generate_sales_fact(time_dim, geo_dim, product_dim, customer_dim, 300000)
     
     # Save to Parquet files
     print("Saving to Parquet files...")
