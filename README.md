@@ -1,6 +1,6 @@
 # OLAP Sample Data Generator
 
-This project generates sample OLAP (Online Analytical Processing) data and saves it to Parquet files. The data follows a star schema design with fact and dimension tables, making it suitable for analytical queries and business intelligence applications.
+This project generates sample OLAP (Online Analytical Processing) data and saves it to both Parquet and CSV files. The data follows a star schema design with fact and dimension tables, making it suitable for analytical queries and business intelligence applications.
 
 ## Overview
 
@@ -41,12 +41,21 @@ Run the data generator to create sample OLAP data:
 python generate_olap_data.py
 ```
 
-This will create an `olap_data` directory containing the following Parquet files:
-- `dim_time.parquet` - Time dimension (1,826 records)
-- `dim_geography.parquet` - Geography dimension (~80 records)
-- `dim_product.parquet` - Product dimension (~200 records)
+This will create two directories containing the data in different formats:
+
+**Parquet format** (`olap_data` directory):
+- `dim_time.parquet` - Time dimension (1,827 records)
+- `dim_geography.parquet` - Geography dimension (~63 records)
+- `dim_product.parquet` - Product dimension (~150 records)
 - `dim_customer.parquet` - Customer dimension (1,000 records)
 - `fact_sales.parquet` - Sales fact table (50,000 records)
+
+**CSV format** (`csv_data` directory):
+- `dim_time.csv` - Time dimension
+- `dim_geography.csv` - Geography dimension
+- `dim_product.csv` - Product dimension
+- `dim_customer.csv` - Customer dimension
+- `fact_sales.csv` - Sales fact table
 
 ### Analyze the Data
 
@@ -116,11 +125,20 @@ You can modify the data generation parameters in `generate_olap_data.py`:
 
 ## File Formats
 
-The data is stored in Apache Parquet format, which offers:
+The data is available in two formats:
+
+### Parquet Format
 - Columnar storage for fast analytical queries
 - Efficient compression
 - Schema evolution support
 - Wide ecosystem support (Spark, Pandas, etc.)
+- Ideal for data warehouses and big data analytics
+
+### CSV Format  
+- Universal compatibility with most tools and applications
+- Human-readable format
+- Easy to import into spreadsheets and databases
+- Good for data exchange and initial exploration
 
 ## Next Steps
 

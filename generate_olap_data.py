@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate sample OLAP data and write to Parquet files.
+Generate sample OLAP data and write to Parquet and CSV files.
 This creates a star schema with fact and dimension tables suitable for OLAP analysis.
 """
 
@@ -192,9 +192,12 @@ def generate_sales_fact(time_dim, geo_dim, product_dim, customer_dim, num_record
     return pd.DataFrame(fact_data)
 
 def main():
-    """Generate all dimensions and fact table, then save to Parquet files."""
-    output_dir = Path('olap_data')
-    output_dir.mkdir(exist_ok=True)
+    """Generate all dimensions and fact table, then save to both Parquet and CSV files."""
+    # Create output directories
+    parquet_dir = Path('olap_data')
+    csv_dir = Path('csv_data')
+    parquet_dir.mkdir(exist_ok=True)
+    csv_dir.mkdir(exist_ok=True)
     
     print("Generating OLAP sample data...")
     
@@ -217,11 +220,19 @@ def main():
     
     # Save to Parquet files
     print("Saving to Parquet files...")
-    time_dim.to_parquet(output_dir / 'dim_time.parquet', index=False)
-    geo_dim.to_parquet(output_dir / 'dim_geography.parquet', index=False)
-    product_dim.to_parquet(output_dir / 'dim_product.parquet', index=False)
-    customer_dim.to_parquet(output_dir / 'dim_customer.parquet', index=False)
-    sales_fact.to_parquet(output_dir / 'fact_sales.parquet', index=False)
+    time_dim.to_parquet(parquet_dir / 'dim_time.parquet', index=False)
+    geo_dim.to_parquet(parquet_dir / 'dim_geography.parquet', index=False)
+    product_dim.to_parquet(parquet_dir / 'dim_product.parquet', index=False)
+    customer_dim.to_parquet(parquet_dir / 'dim_customer.parquet', index=False)
+    sales_fact.to_parquet(parquet_dir / 'fact_sales.parquet', index=False)
+    
+    # Save to CSV files
+    print("Saving to CSV files...")
+    time_dim.to_csv(csv_dir / 'dim_time.csv', index=False)
+    geo_dim.to_csv(csv_dir / 'dim_geography.csv', index=False)
+    product_dim.to_csv(csv_dir / 'dim_product.csv', index=False)
+    customer_dim.to_csv(csv_dir / 'dim_customer.csv', index=False)
+    sales_fact.to_csv(csv_dir / 'fact_sales.csv', index=False)
     
     # Print summary statistics
     print("\n" + "="*50)
@@ -232,7 +243,8 @@ def main():
     print(f"Product dimension: {len(product_dim):,} records")
     print(f"Customer dimension: {len(customer_dim):,} records")
     print(f"Sales fact table: {len(sales_fact):,} records")
-    print(f"\nFiles saved to: {output_dir.absolute()}")
+    print(f"\nParquet files saved to: {parquet_dir.absolute()}")
+    print(f"CSV files saved to: {csv_dir.absolute()}")
     
     # Show sample data
     print("\nSample Sales Data (first 5 records):")
